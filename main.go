@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"nomad-gitops-operator/cmd"
+	"caravan/cmd"
 )
 
 func main() {

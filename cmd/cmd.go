@@ -1,59 +1,139 @@
 package cmd
 
 import (
+	"caravan/pkg/caravan"
+	"caravan/pkg/genric"
+	"cdr.dev/slog"
+	"cdr.dev/slog/sloggers/sloghuman"
+	"context"
+	"fmt"
+	"github.com/XMLHexagram/emp"
+	"github.com/go-git/go-git/v5"
+	nomad "github.com/hashicorp/nomad-openapi/clients/go/v1"
+	"github.com/joho/godotenv"
+	"io"
 	"os"
-
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
+	"time"
 )
 
-var rootCmd = &cobra.Command{
-	Use:   "nomoperator",
-	Short: "Nomoperator is a cli tool for keeping a HashiCorp Nomad cluster in sync with a Git repository containing Nomad job specifications.",
-	Long: `Nomoperator is a cli tool for keeping a HashiCorp Nomad cluster in sync with a Git repository containing Nomad job specifications.
-Created by Jonas Vinther.`,
-	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		// Apply the viper config value to the flag when the flag is not set and viper has a value
-		address, _ := cmd.Flags().GetString("address")
-		if address != "" {
-			os.Setenv("NOMAD_ADDR", address)
+// Execute executes the root command.
+func Execute() error {
+	log := slog.Make(sloghuman.Sink(os.Stdout))
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal(context.Background(), "Error loading .env file", slog.Error(err))
+		return err
+	}
+
+	settings, err := ParseSettings(err)
+	if err != nil {
+		log.Fatal(context.Background(), "Error parsing env", slog.Error(err))
+		return err
+	}
+
+	// Create Nomad client
+	client, err := caravan.NewClient()
+	if err != nil {
+		log.Fatal(context.Background(), "Failed to build nomad client", slog.Error(err))
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	worktree, err := caravan.CloneGit(ctx, settings.GitRepository, settings.GitBranch)
+	defer cancel()
+
+	// Reconcile Loop
+	for {
+		err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
+		if err != nil {
+			log.Error(context.Background(), "Failed to pull latest", slog.Error(err))
+			return err
 		}
 
-		if viper.IsSet("NOMAD_ADDR") && address == "" {
-			value := viper.Get("NOMAD_ADDR").(string)
-			err := cmd.Flags().Set("address", value)
+		fs := worktree.Filesystem
+		path := settings.GitPath
+		files, err := fs.ReadDir(path)
+		if err != nil {
+			log.Error(context.Background(), "Failed to read files in git repo", slog.Error(err))
+			return err
+		}
+
+		jobs, err := client.ListJobs()
+		if err != nil {
+			log.Error(context.Background(), "Failed to fetch nomad jobs", slog.Error(err))
+			return err
+		}
+
+		// get caravan managed jobs
+		jobs = genric.FilterMap(jobs, func(k string, j *nomad.Job) bool {
+			if j.Meta == nil {
+				return false
+			}
+
+			_, found := (*j.Meta)[caravan.MetaKeyName]
+			return found
+		})
+
+		// Parse and apply all jobs from within the git repo
+		for _, file := range files {
+			filePath := fs.Join(path, file.Name())
+			f, err := fs.Open(filePath)
 			if err != nil {
+				log.Error(context.Background(), "Failed to open job file", slog.F("file", filePath), slog.Error(err))
+				return fmt.Errorf("failed to open %v: %w", filePath, err)
+			}
+
+			b, err := io.ReadAll(f)
+			if err != nil {
+				log.Error(context.Background(), "Failed to read job file", slog.F("file", filePath), slog.Error(err))
+				return fmt.Errorf("failed to read %v: %w", filePath, err)
+			}
+
+			job, err := client.ParseJob(string(b))
+			if err != nil {
+				log.Warn(context.Background(), "Failed to parse job file, skipping", slog.F("file", filePath), slog.Error(err))
+				continue
+			}
+			delete(jobs, job.GetName())
+
+			fmt.Printf("Applying job [%s]\n", job.GetName())
+			_, err = client.ApplyJob(job)
+			if err != nil {
+				log.Warn(context.Background(), "Failed to apply job", slog.F("file", filePath), slog.Error(err))
 				return err
 			}
 		}
 
-		return nil
-	},
+		for name, job := range jobs {
+			meta := job.GetMeta()
+
+			if _, isManaged := meta[caravan.MetaKeyName]; isManaged {
+				err = client.DeleteJob(job)
+				if err != nil {
+					log.Warn(context.Background(), "Failed to parse job file, continueing", slog.F("job", name), slog.Error(err))
+				}
+			}
+		}
+
+		time.Sleep(settings.Interval)
+	}
 }
 
-// Execute executes the root command.
-func Execute() error {
-	return rootCmd.Execute()
-}
-
-func init() {
-	rootCmd.PersistentFlags().StringP("address", "a", "", "Address of the Nomad server")
-
-	// AutomaticEnv makes Viper load environment variables
-	viper.AutomaticEnv()
-
-	// Explicitly defines the path, name and type of the config file.
-	// Viper will use this and not check any of the config paths.
-	// It will search for the "config" file in the ~/.nomoperator
-	viper.SetConfigType("yaml")
-	viper.AddConfigPath("$HOME/.nomoperator")
-	viper.SetConfigName("config")
-
-	// Find and read the config file
-	err := viper.ReadInConfig()
-
+func ParseSettings(err error) (*caravan.Settings, error) {
+	settings := caravan.NewSettings()
+	parser, err := emp.NewParser(&emp.Config{
+		ZeroFields: true,
+		AllowEmpty: true,
+	})
 	if err != nil {
-		// log.Fatalf("Error while reading config file %s", err)
+		return nil, fmt.Errorf("error creating env parser: %w", err)
+	}
+	err = parser.Parse(settings)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing env: %w", err)
 	}
 
+	err = settings.Verify()
+	return settings, err
 }
