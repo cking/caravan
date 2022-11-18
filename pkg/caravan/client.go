@@ -77,6 +77,9 @@ func (client *Client) ApplyJob(job *nomad.Job) (string, error) {
 	// Adding metadata to identify the jobs managed by the Nomoporator
 	// receive existng metaa
 	metadata := job.GetMeta()
+	if metadata == nil {
+		metadata = make(map[string]string)
+	}
 	metadata[MetaKeyName] = "true"
 	metadata["uid"] = "caravan"
 	job.SetMeta(metadata)
