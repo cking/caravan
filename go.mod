@@ -4,7 +4,6 @@ go 1.18
 
 require (
 	cdr.dev/slog v1.4.1
-	github.com/XMLHexagram/emp v1.0.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906

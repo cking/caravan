@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"go.uber.org/multierr"
 	"net/url"
+	"os"
 	"time"
 )
 
 type Settings struct {
-	GitRepository string `emp:"GIT_REPO"`
-	GitBranch     string `emp:"GIT_BRANCH"`
-	GitPath       string `emp:"GIT_PATH"`
+	GitRepository string
+	GitBranch     string
+	GitPath       string
 
-	Interval time.Duration `emp:"CARAVAN_INTERVAL"`
+	Interval time.Duration
 }
 
 func NewSettings() *Settings {
@@ -22,6 +23,27 @@ func NewSettings() *Settings {
 		GitPath:   "/",
 		GitBranch: "main",
 	}
+}
+
+func SettingsFromEnv() *Settings {
+	settings := NewSettings()
+
+	if key := os.Getenv("GIT_REPO"); key != "" {
+		settings.GitRepository = key
+	}
+	if key := os.Getenv("GIT_BRANCH"); key != "" {
+		settings.GitBranch = key
+	}
+	if key := os.Getenv("GIT_PATH"); key != "" {
+		settings.GitPath = key
+	}
+	if key := os.Getenv("CARAVAN_INTERVAL"); key != "" {
+		if dur, err := time.ParseDuration(key); err == nil {
+			settings.Interval = dur
+		}
+	}
+
+	return settings
 }
 
 func (s *Settings) Verify() (err error) {

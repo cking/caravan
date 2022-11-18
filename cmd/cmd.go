@@ -7,7 +7,6 @@ import (
 	"cdr.dev/slog/sloggers/sloghuman"
 	"context"
 	"fmt"
-	"github.com/XMLHexagram/emp"
 	"github.com/go-git/go-git/v5"
 	nomad "github.com/hashicorp/nomad-openapi/clients/go/v1"
 	"github.com/joho/godotenv"
@@ -123,18 +122,7 @@ func Execute() error {
 func ParseSettings() (*caravan.Settings, error) {
 	var err error
 
-	settings := caravan.NewSettings()
-	parser, err := emp.NewParser(&emp.Config{
-		ZeroFields: true,
-		AllowEmpty: true,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating env parser: %w", err)
-	}
-	err = parser.Parse(settings)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing env: %w", err)
-	}
+	settings := caravan.SettingsFromEnv()
 
 	err = settings.Verify()
 	return settings, err
