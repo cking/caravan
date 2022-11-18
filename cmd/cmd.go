@@ -19,14 +19,14 @@ import (
 // Execute executes the root command.
 func Execute() error {
 	log := slog.Make(sloghuman.Sink(os.Stdout))
+	_ = godotenv.Load()
 
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal(context.Background(), "Error loading .env file", slog.Error(err))
-		return err
+		log.Warn(context.Background(), "Error loading .env file", slog.Error(err))
 	}
 
-	settings, err := ParseSettings(err)
+	settings, err := ParseSettings()
 	if err != nil {
 		log.Fatal(context.Background(), "Error parsing env", slog.Error(err))
 		return err
@@ -120,7 +120,9 @@ func Execute() error {
 	}
 }
 
-func ParseSettings(err error) (*caravan.Settings, error) {
+func ParseSettings() (*caravan.Settings, error) {
+	var err error
+
 	settings := caravan.NewSettings()
 	parser, err := emp.NewParser(&emp.Config{
 		ZeroFields: true,
