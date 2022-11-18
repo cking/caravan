@@ -45,7 +45,7 @@ func Execute() error {
 	// Reconcile Loop
 	for {
 		err = worktree.Pull(&git.PullOptions{RemoteName: "origin"})
-		if err != nil {
+		if err != nil && err != git.NoErrAlreadyUpToDate {
 			log.Error(context.Background(), "Failed to pull latest", slog.Error(err))
 			return err
 		}
