@@ -43,7 +43,7 @@ job "caravan" {
       }
   
       artifact {
-        source      = "https://github.com/cking/caravan/releases/download/v0.0.1/caravan_0.0.1_linux_amd64.tar.gz"
+        source      = "https://github.com/cking/caravan/releases/download/v0.0.5/caravan_0.0.5_linux_amd64.tar.gz"
         destination = "local"
         mode        = "any"
       }
@@ -51,6 +51,8 @@ job "caravan" {
   }
 }
 ```
+
+If you want to use a private git repository, make sure you have a private access token with read permissions on that repository and then enter the `GIT_REPO` URL as `https://user:password@github.com/user/repo`
 
 ## Acknowledgement
 [nomad-gitops-operator](https://github.com/jonasvinther/nomad-gitops-operator) by @jonasvinthjer
