@@ -8,7 +8,7 @@ require (
 	github.com/go-git/go-git/v5 v5.4.2
 	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906
 	github.com/joho/godotenv v1.4.0
-	go.uber.org/multierr v1.8.0
+	go.uber.org/multierr v1.9.0
 )
 
 require (
