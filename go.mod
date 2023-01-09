@@ -4,8 +4,8 @@ go 1.18
 
 require (
 	cdr.dev/slog v1.4.1
-	github.com/go-git/go-billy/v5 v5.3.1
-	github.com/go-git/go-git/v5 v5.5.1
+	github.com/go-git/go-billy/v5 v5.4.0
+	github.com/go-git/go-git/v5 v5.5.2
 	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906
 	github.com/joho/godotenv v1.4.0
 	go.uber.org/multierr v1.9.0
@@ -39,7 +39,7 @@ require (
 	golang.org/x/crypto v0.3.0 // indirect
 	golang.org/x/net v0.2.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
-	golang.org/x/sys v0.2.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.2.0 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
