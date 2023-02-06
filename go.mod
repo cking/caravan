@@ -7,7 +7,7 @@ require (
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.5.1
 	github.com/hashicorp/nomad-openapi v0.0.0-20221012231901-fc8faf7e8906
-	github.com/joho/godotenv v1.4.0
+	github.com/joho/godotenv v1.5.1
 	go.uber.org/multierr v1.9.0
 )
 
